@@ -26,39 +26,11 @@ def setup_board():
     # create empty board
     board = np.zeros((8, 8), dtype=piece_dt)
 
-    # setup black pawns and colour for back row
-    for i in range(8):
-        board[1, i][0] = 'p'
-        board[1, i][1] = board[0, i][1] = BLACK
+    # setup black pieces
+    setup_pieces(board, BLACK)
 
-    # setup other black pieces
-    # rooks
-    board[0, 0][0] = board[0, 7][0] = 'r'
-    # knights
-    board[0, 1][0] = board[0, 6][0] = 'n'
-    # bishops
-    board[0, 2][0] = board[0, 5][0] = 'b'
-    # queen
-    board[0, 3][0] = 'q'
-    # king
-    board[0, 4][0] = 'k'
-
-    # setup white pawns and colour for back row
-    for i in range(8):
-        board[6, i][0] = 'p'
-        board[6, i][1] = board[7, i][1] = WHITE
-
-    # setup other white pieces
-    # rooks
-    board[7, 0][0] = board[7, 7][0] = 'r'
-    # knights
-    board[7, 1][0] = board[7, 6][0] = 'n'
-    # bishops
-    board[7, 2][0] = board[7, 5][0] = 'b'
-    # queen
-    board[7, 3][0] = 'q'
-    # king
-    board[7, 4][0] = 'k'
+    # setup white pieces
+    setup_pieces(board, WHITE)
 
     # setup empty cells
     for j in range(2, 6):
@@ -66,6 +38,33 @@ def setup_board():
             board[j, i][0] = ' '
 
     return board
+
+
+# sets up pieces for specified colour
+def setup_pieces(board, colour):
+    if colour == BLACK:
+        back_row = 0
+        pawn_row = 1
+    else:
+        back_row = 7
+        pawn_row = 6
+
+    # setup pawns and colour for back row
+    for i in range(8):
+        board[pawn_row, i][0] = 'p'
+        board[pawn_row, i][1] = board[back_row, i][1] = colour
+
+    # setup other pieces
+    # rooks
+    board[back_row, 0][0] = board[back_row, 7][0] = 'r'
+    # knights
+    board[back_row, 1][0] = board[back_row, 6][0] = 'n'
+    # bishops
+    board[back_row, 2][0] = board[back_row, 5][0] = 'b'
+    # queen
+    board[back_row, 3][0] = 'q'
+    # king
+    board[back_row, 4][0] = 'k'
 
 
 # prints out the chess board representation in the command line
@@ -107,17 +106,9 @@ def check_move_valid(board, move, turn_num):
         return True
 
     # make sure move is in valid format
-    if len(move) != 5:
-        return False
-    if move[2] != '-':
-        return False
-    if not('a' <= move[0] <= 'h'):
-        return False
-    if not('a' <= move[3] <= 'h'):
-        return False
-    if not('1' <= move[1] <= '8'):
-        return False
-    if not('1' <= move[4] <= '8'):
+    if(len(move) != 5 or move[2] != '-' or not('a' <= move[0] <= 'h') or
+       not('a' <= move[3] <= 'h') or not('1' <= move[1] <= '8') or
+       not('1' <= move[4] <= '8')):
         return False
 
     # get start and end coords
@@ -140,6 +131,7 @@ def check_move_valid(board, move, turn_num):
         return False
 
     # Make sure moving piece in valid fashion
+    # first get what piece they're trying to move
     piece_type = board[start_row, start_col][0]
 
     # Check validity of move for pawn
@@ -178,9 +170,6 @@ def check_move_valid(board, move, turn_num):
             # if cell is not empty
             if board[row[0], col[0]][1] != 0:
                 return False
-        # can't end turn in check
-        if check_for_check(board, move, turn_num):
-            return False
 
     # Check validity of move for rook
     elif piece_type == 'r':
@@ -189,9 +178,6 @@ def check_move_valid(board, move, turn_num):
             return False
         # make sure it's not trying to pass through other pieces
         if not check_free_path(board, move):
-            return False
-        # can't end turn in check
-        if check_for_check(board, move, turn_num):
             return False
 
     # Check validity of move for bishop
@@ -205,9 +191,6 @@ def check_move_valid(board, move, turn_num):
         # make sure it's not trying to pass through other pieces
         if not check_free_path(board, move):
             return False
-        # can't end turn in check
-        if check_for_check(board, move, turn_num):
-            return False
 
     # Check validity of move for queen
     elif piece_type == 'q':
@@ -219,9 +202,6 @@ def check_move_valid(board, move, turn_num):
         # make sure it's not trying to pass through other pieces
         if not check_free_path(board, move):
             return False
-        # can't end turn in check
-        if check_for_check(board, move, turn_num):
-            return False
 
     # Check validity of move for knight
     elif piece_type == 'n':
@@ -231,19 +211,37 @@ def check_move_valid(board, move, turn_num):
         if not((rows_moved == 2 and cols_moved == 1) or
                (cols_moved == 2 and rows_moved == 1)):
             return False
-        # can't end turn in check
-        if check_for_check(board, move, turn_num):
-            return False
 
     # Check validity of move for king
     elif piece_type == 'k':
         # can't move more than 1 square in any direction
         if abs(start_row - end_row) > 1 or abs(start_col - end_col) > 1:
             return False
-        # can't move into check position
-        if check_for_check(board, move, turn_num):
-            return False
+
+    # can't end turn in check (or move into check for king)
+    if check_for_check(board, move, turn_num):
+        return False
+
     return True
+
+
+# converts move format to start and end coordinates
+def move_to_coords(move):
+    start_row = 8 - int(move[1])
+    start_col = ord(move[0]) - ord('a')
+    end_row = 8 - int(move[4])
+    end_col = ord(move[3]) - ord('a')
+    return start_row, start_col, end_row, end_col
+
+
+# converts a row number to move row number
+def row_to_move_row(row):
+    return str(8-row)
+
+
+# converts a column number to move column letter
+def col_to_move_col(col):
+    return chr(col+ord('a'))
 
 
 # returns the coordinates of the cells between the start and finish location
@@ -274,17 +272,14 @@ def get_cells_between(move):
     return rows, cols
 
 
-# returns the coordinates of the cells with pieces of the specified
-# player colour in them
-def get_coords_opp_pieces(board, colour):
-    rows = []
-    cols = []
-    for i in range(8):
-        for j in range(8):
-            if board[i, j][1] == colour:
-                rows.append(i)
-                cols.append(j)
-    return rows, cols
+# checks if there are any pieces along the path of the specified move
+# returns False if there are any pieces in the way
+def check_free_path(board, move):
+    rows, cols = get_cells_between(move)
+    for i in range(len(rows)):
+        if board[rows[i], cols[i]][1] != 0:
+            return False
+    return True
 
 
 # returns True if king would move into check position given the specified
@@ -322,6 +317,46 @@ def check_for_check(board, move, turn_num):
     return False
 
 
+# create a duplicate board
+def dup_board(board):
+    new_board = setup_board()
+    for i in range(8):
+        for j in range(8):
+            for k in range(2):
+                new_board[i, j][k] = board[i, j][k]
+    return new_board
+
+
+# enacts the specified move on the board. This function assumes a valid move
+def move_piece(board, move):
+    start_row, start_col, end_row, end_col = move_to_coords(move)
+    board[end_row, end_col][0] = board[start_row, start_col][0]
+    board[end_row, end_col][1] = board[start_row, start_col][1]
+    board[start_row, start_col][0] = ' '
+    board[start_row, start_col][1] = 0
+
+
+# returns the row and column of the specified player's king
+def get_loc_of_king(board, colour):
+    for i in range(8):
+        for j in range(8):
+            if board[i, j][0] == 'k' and board[i, j][1] == colour:
+                return i, j
+
+
+# returns the coordinates of the cells with pieces of the specified
+# player colour in them
+def get_coords_opp_pieces(board, colour):
+    rows = []
+    cols = []
+    for i in range(8):
+        for j in range(8):
+            if board[i, j][1] == colour:
+                rows.append(i)
+                cols.append(j)
+    return rows, cols
+
+
 # checks for checkmate condition and returns True if player is in checkmate
 def checkmate(board, turn_counter):
     if turn_counter % 2 == 0:
@@ -334,14 +369,6 @@ def checkmate(board, turn_counter):
         if not check_for_check(board, m, turn_counter+1):
             return False
     return True
-
-
-# returns the row and column of the specified player's king
-def get_loc_of_king(board, colour):
-    for i in range(8):
-        for j in range(8):
-            if board[i, j][0] == 'k' and board[i, j][1] == colour:
-                return i, j
 
 
 # gets all legal moves for given player
@@ -368,53 +395,7 @@ def get_all_moves_from_cell(board, cell, turn_num):
     return move_list
 
 
-# create a duplicate board
-def dup_board(board):
-    new_board = setup_board()
-    for i in range(8):
-        for j in range(8):
-            for k in range(2):
-                new_board[i, j][k] = board[i, j][k]
-    return new_board
-
-
-# checks if there are any pieces along the path of the specified move
-# returns False if there are any pieces in the way
-def check_free_path(board, move):
-    rows, cols = get_cells_between(move)
-    for i in range(len(rows)):
-        if board[rows[i], cols[i]][1] != 0:
-            return False
-    return True
-
-
-# converts a row number to move row number
-def row_to_move_row(row):
-    return str(8-row)
-
-
-# converts a column number to move column letter
-def col_to_move_col(col):
-    return chr(col+ord('a'))
-
-
-# converts move format to start and end coordinates
-def move_to_coords(move):
-    start_row = 8 - int(move[1])
-    start_col = ord(move[0]) - ord('a')
-    end_row = 8 - int(move[4])
-    end_col = ord(move[3]) - ord('a')
-    return start_row, start_col, end_row, end_col
-
-
-# enacts the specified move on the board. This function assumes a valid move
-def move_piece(board, move):
-    start_row, start_col, end_row, end_col = move_to_coords(move)
-    board[end_row, end_col][0] = board[start_row, start_col][0]
-    board[end_row, end_col][1] = board[start_row, start_col][1]
-    board[start_row, start_col][0] = ' '
-    board[start_row, start_col][1] = 0
-
+# #############################################################################
 
 # run game
 board = setup_board()
