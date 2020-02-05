@@ -137,33 +137,32 @@ def check_move_valid(board, move, turn_num):
     # Check validity of move for pawn
     if piece_type == 'p':
         # can't move more than two spaces forward or less than 1
-        if abs(start_row-end_row) > 2 or abs(start_row-end_row) < 1:
+        if((abs(start_row-end_row) > 2 or abs(start_row-end_row) < 1)
+
+           # can only move two spaces from its original space
+           # and make sure correct colour for such a move
+           or (start_row-end_row == 2 and (start_row != 6 or exp_colour != 1))
+           or (start_row-end_row == -2 and (start_row != 1 or exp_colour != 2))
+
+           # can't move backwards
+           or (start_row-end_row == 1 and exp_colour != 1)
+           or (start_row-end_row == -1 and exp_colour != 2)
+
+           # can't move two spaces and diagonal at same time
+           or (abs(start_row-end_row) == 2 and start_col != end_col)
+
+           # can't move more than 1 across
+           or (abs(start_col - end_col) > 1)
+
+           # can only move diagonal if taking piece
+           or(abs(start_col - end_col) == 1 and
+              board[end_row, end_col][1] != opp_colour)
+
+           # can only take piece if moving diagonal
+           or(abs(start_col - end_col) != 1 and
+              board[end_row, end_col][1] == opp_colour)):
             return False
-        # can only move two spaces from its original space
-        # and make sure correct colour for such a move
-        if start_row-end_row == 2 and (start_row != 6 or exp_colour != 1):
-            return False
-        if start_row-end_row == -2 and (start_row != 1 or exp_colour != 2):
-            return False
-        # can't move backwards
-        if start_row-end_row == 1 and exp_colour != 1:
-            return False
-        if start_row-end_row == -1 and exp_colour != 2:
-            return False
-        # can't move two spaces and diagonal at same time
-        if abs(start_row-end_row) == 2 and start_col != end_col:
-            return False
-        # can't move more than 1 across
-        if abs(start_col - end_col) > 1:
-            return False
-        # can only move diagonal if taking piece
-        if(abs(start_col - end_col) == 1 and
-           board[end_row, end_col][1] != opp_colour):
-            return False
-        # can only take piece if moving diagonal
-        if(abs(start_col - end_col) != 1 and
-           board[end_row, end_col][1] == opp_colour):
-            return False
+
         # Can't move two spaces if there is a piece in between
         if abs(start_row-end_row) == 2:
             row, col = get_cells_between(move)
